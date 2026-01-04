@@ -17,7 +17,7 @@
 - npm
 
 ## 📁 Структура проєкту
-
+```
 src/
 ├── _test_/
 │ └── task1.test.js
@@ -28,7 +28,7 @@ src/
 │ ├── permissions.mjs
 │ └── errorHandler.mjs
 └── server.mjs
-
+```
 ## 🚀 Запуск проєкту
 
 1. Встановити залежності:
