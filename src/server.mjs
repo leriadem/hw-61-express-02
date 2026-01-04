@@ -1,5 +1,11 @@
 import express from 'express';
 
+import { validateUser, validateArticle } from './middlewares/validate.mjs';
+import { errorHandler } from './middlewares/errorHandler.mjs';
+import { logRequests } from './middlewares/logger.mjs';
+import { basicAuth } from './middlewares/auth.mjs';
+import { checkArticlePermission } from './middlewares/permissions.mjs';
+
 // Ініціалізація app
 const app = express();
 app.use(express.json());
@@ -8,52 +14,41 @@ app.use(express.json());
 const users = new Set(['123']);
 const articles = new Set(['456']);
 
-// Root route
-app.get('/', (req, res) => {
+// Root
+app.get('/', logRequests, (req, res) => {
   res.status(200).send('Get root route');
 });
 
 // Users routes
-app.get('/users', (req, res) => {
-  res.status(200).send('Get users route');
+app.get('/users', basicAuth, (req, res) => {
+  res.send('Get users route');
 });
 
-app.post('/users', (req, res) => {
-  const { name } = req.body;
-
-  if (!name) {
-    return res.status(400).send('Bad Request');
-  }
-
+app.post('/users', basicAuth, validateUser, (req, res) => {
   res.status(201).send('Post users route');
 });
 
-app.get('/users/:userId', (req, res) => {
+app.get('/users/:userId', basicAuth, (req, res) => {
   const { userId } = req.params;
 
   if (!users.has(userId)) {
     return res.status(404).send('Not Found');
   }
 
-  res.status(200).send(`Get user by Id route: ${userId}`);
+  res.send(`Get user by Id route: ${userId}`);
 });
 
-app.put('/users/:userId', (req, res) => {
+app.put('/users/:userId', basicAuth, validateUser, (req, res) => {
   const { userId } = req.params;
-  const { name } = req.body;
 
   if (!users.has(userId)) {
     return res.status(404).send('Not Found');
   }
 
-  if (!name) {
-    return res.status(400).send('Bad Request');
-  }
-
-  res.status(200).send(`Put user by Id route: ${userId}`);
+  res.send(`Put user by Id route: ${userId}`);
 });
 
-app.delete('/users/:userId', (req, res) => {
+app.delete('/users/:userId', basicAuth, (req, res) => {
   const { userId } = req.params;
 
   if (!users.has(userId)) {
@@ -64,46 +59,35 @@ app.delete('/users/:userId', (req, res) => {
 });
 
 // Articles routes
-app.get('/articles', (req, res) => {
-  res.status(200).send('Get articles route');
+app.get('/articles', checkArticlePermission, (req, res) => {
+  res.send('Get articles route');
 });
 
-app.post('/articles', (req, res) => {
-  const { title } = req.body;
-
-  if (!title) {
-    return res.status(400).send('Bad Request');
-  }
-
+app.post('/articles', checkArticlePermission, validateArticle, (req, res) => {
   res.status(201).send('Post articles route');
 });
 
-app.get('/articles/:articleId', (req, res) => {
+app.get('/articles/:articleId', checkArticlePermission, (req, res) => {
   const { articleId } = req.params;
 
   if (!articles.has(articleId)) {
     return res.status(404).send('Not Found');
   }
 
-  res.status(200).send(`Get article by Id route: ${articleId}`);
+  res.send(`Get article by Id route: ${articleId}`);
 });
 
-app.put('/articles/:articleId', (req, res) => {
+app.put('/articles/:articleId', checkArticlePermission, validateArticle, (req, res) => {
   const { articleId } = req.params;
-  const { title } = req.body;
 
   if (!articles.has(articleId)) {
     return res.status(404).send('Not Found');
   }
 
-  if (!title) {
-    return res.status(400).send('Bad Request');
-  }
-
-  res.status(200).send(`Put article by Id route: ${articleId}`);
+  res.send(`Put article by Id route: ${articleId}`);
 });
 
-app.delete('/articles/:articleId', (req, res) => {
+app.delete('/articles/:articleId', checkArticlePermission, (req, res) => {
   const { articleId } = req.params;
 
   if (!articles.has(articleId)) {
@@ -117,6 +101,9 @@ app.delete('/articles/:articleId', (req, res) => {
 app.use((req, res) => {
   res.status(404).send('Not Found');
 });
+
+// Error handler
+app.use(errorHandler);
 
 // Server start
 const server = app.listen(3000, () => {
